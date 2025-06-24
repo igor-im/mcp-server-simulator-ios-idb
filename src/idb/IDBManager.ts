@@ -26,10 +26,15 @@ export class IDBManager implements IIDBManager {
 
   private async executeCommand(command: string): Promise<string> {
     try {
-      const { stdout } = await execAsync(command);
+      const idbPath = '/Users/igor/Documents/tools/mcp-server-simulator-ios-idb/venv/bin/idb';
+      const fullCommand = command.replace(/^idb/, idbPath);
+      console.log(`Executing command: ${fullCommand}`);
+      const { stdout } = await execAsync(fullCommand);
       return stdout.trim();
     } catch (error: any) {
+      const idbPath = '/Users/igor/Documents/tools/mcp-server-simulator-ios-idb/venv/bin/idb';
       console.error(`Error executing idb command: ${command}`);
+      console.error(`Full command was: ${command.replace(/^idb/, idbPath)}`);
       console.error(error.message);
       throw new Error(`Error executing idb command: ${error.message}`);
     }
@@ -37,7 +42,7 @@ export class IDBManager implements IIDBManager {
 
   private async verifyIDBAvailability(): Promise<void> {
     try {
-      await this.executeCommand('idb --version');
+      await this.executeCommand('idb --help');
     } catch (error) {
       throw new Error('idb is not installed or not available in PATH. Make sure idb-companion and fb-idb are properly installed.');
     }
@@ -182,7 +187,8 @@ export class IDBManager implements IIDBManager {
     if (!udid) {
       throw new Error(`Session not found: ${sessionId}`);
     }
-    await this.executeCommand(`idb launch --udid ${udid} ${bundleId}`);
+    console.log(`Launching app with bundleId: "${bundleId}" on udid: ${udid}`);
+    await this.executeCommand(`idb launch --udid ${udid} "${bundleId}"`);
   }
 
   async terminateApp(sessionId: string, bundleId: string): Promise<void> {
@@ -198,7 +204,7 @@ export class IDBManager implements IIDBManager {
     if (!udid) {
       throw new Error(`Session not found: ${sessionId}`);
     }
-    await this.executeCommand(`idb ui --udid ${udid} tap ${x} ${y}`);
+    await this.executeCommand(`idb ui tap ${x} ${y} --udid ${udid}`);
   }
 
   async swipe(
@@ -214,7 +220,7 @@ export class IDBManager implements IIDBManager {
       throw new Error(`Session not found: ${sessionId}`);
     }
     await this.executeCommand(
-      `idb ui --udid ${udid} swipe ${startX} ${startY} ${endX} ${endY} ${duration}`
+      `idb ui swipe ${startX} ${startY} ${endX} ${endY} ${duration} --udid ${udid}`
     );
   }
 
@@ -303,8 +309,22 @@ export class IDBManager implements IIDBManager {
     if (!udid) {
       throw new Error(`Session not found: ${sessionId}`);
     }
+    
     const output = await this.executeCommand(`idb list-apps --udid ${udid} --json`);
-    const apps = JSON.parse(output);
+    
+    // Parse JSONL format (each line is a separate JSON object)
+    const lines = output.split('\n').filter(line => line.trim().length > 0);
+    const apps: any[] = [];
+    
+    for (const line of lines) {
+      try {
+        const app = JSON.parse(line.trim());
+        apps.push(app);
+      } catch (error) {
+        // Skip invalid lines
+        continue;
+      }
+    }
     return apps.map((app: any) => ({
       bundleId: app.bundle_id,
       name: app.name || app.bundle_id,
@@ -317,7 +337,7 @@ export class IDBManager implements IIDBManager {
     if (!udid) {
       throw new Error(`Session not found: ${sessionId}`);
     }
-    let command = `idb ui --udid ${udid} button ${button}`;
+    let command = `idb ui button ${button} --udid ${udid}`;
     if (duration) command += ` --duration ${duration}`;
     await this.executeCommand(command);
   }
@@ -328,7 +348,7 @@ export class IDBManager implements IIDBManager {
       throw new Error(`Session not found: ${sessionId}`);
     }
     const escapedText = text.replace(/"/g, '\\"');
-    await this.executeCommand(`idb ui --udid ${udid} text "${escapedText}"`);
+    await this.executeCommand(`idb ui text "${escapedText}" --udid ${udid}`);
   }
 
   async pressKey(sessionId: string, keyCode: number, duration?: number): Promise<void> {
@@ -336,7 +356,7 @@ export class IDBManager implements IIDBManager {
     if (!udid) {
       throw new Error(`Session not found: ${sessionId}`);
     }
-    let command = `idb ui --udid ${udid} key ${keyCode}`;
+    let command = `idb ui key ${keyCode} --udid ${udid}`;
     if (duration) command += ` --duration ${duration}`;
     await this.executeCommand(command);
   }
@@ -347,7 +367,7 @@ export class IDBManager implements IIDBManager {
       throw new Error(`Session not found: ${sessionId}`);
     }
     const keyCodesStr = keyCodes.join(' ');
-    await this.executeCommand(`idb ui --udid ${udid} key-sequence ${keyCodesStr}`);
+    await this.executeCommand(`idb ui key-sequence ${keyCodesStr} --udid ${udid}`);
   }
 
   async getDebugServerStatus(sessionId: string): Promise<{ running: boolean; port?: number; bundleId?: string; }> {
@@ -490,5 +510,62 @@ export class IDBManager implements IIDBManager {
       throw new Error(`Session not found: ${sessionId}`);
     }
     await this.executeCommand(`idb contacts update --udid ${udid} ${dbPath}`);
+  }
+
+  async describeAllElements(sessionId: string): Promise<AccessibilityInfo[]> {
+    const udid = this.sessions.get(sessionId);
+    if (!udid) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+    
+    const output = await this.executeCommand(`idb ui describe-all --udid ${udid}`);
+    const rawElements = JSON.parse(output);
+    
+    // Convert raw idb format to our AccessibilityInfo format
+    return rawElements.map((element: any) => ({
+      identifier: element.AXUniqueId,
+      label: element.AXLabel,
+      frame: {
+        x: element.frame?.x || 0,
+        y: element.frame?.y || 0,
+        width: element.frame?.width || 0,
+        height: element.frame?.height || 0
+      },
+      type: element.type,
+      value: element.AXValue
+    }));
+  }
+
+  async describePointElement(sessionId: string, x: number, y: number): Promise<AccessibilityInfo | null> {
+    const udid = this.sessions.get(sessionId);
+    if (!udid) {
+      throw new Error(`Session not found: ${sessionId}`);
+    }
+    
+    try {
+      const output = await this.executeCommand(`idb ui describe-point --udid ${udid} ${x} ${y}`);
+      const element = JSON.parse(output);
+      
+      if (!element) {
+        return null;
+      }
+      
+      // Convert raw idb format to our AccessibilityInfo format
+      return {
+        identifier: element.AXUniqueId,
+        label: element.AXLabel,
+        frame: {
+          x: element.frame?.x || 0,
+          y: element.frame?.y || 0,
+          width: element.frame?.width || 0,
+          height: element.frame?.height || 0
+        },
+        type: element.type,
+        value: element.AXValue
+      };
+    } catch (error) {
+      // No element found at that point
+      return null;
+    }
   }
 }

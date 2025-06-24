@@ -142,7 +142,36 @@ export class MCPOrchestrator {
       // Execute the command
       return this.executeCommand(command);
     } catch (error: any) {
-      console.error('Error processing instruction:', error);
+      // Use file logging instead of console since console is suppressed in MCP
+      const fs = await import('fs');
+      const path = await import('path');
+      const logsDir = path.join(process.cwd(), 'logs');
+      const logMessage = `${new Date().toISOString()} [ERROR] Processing instruction error: ${error.message}\n${new Date().toISOString()} [ERROR] Enhanced error check: ${!!error.enhancedError}\n`;
+      
+      try {
+        fs.appendFileSync(path.join(logsDir, 'mcp-server.log'), logMessage);
+      } catch (logError) {
+        // Ignore log errors
+      }
+      
+      // Check if this is an enhanced error with suggestions
+      if (error.enhancedError) {
+        const enhancedLogMessage = `${new Date().toISOString()} [ERROR] Using enhanced error response\n`;
+        try {
+          fs.appendFileSync(path.join(logsDir, 'mcp-server.log'), enhancedLogMessage);
+        } catch (logError) {
+          // Ignore log errors
+        }
+        
+        return {
+          success: false,
+          error: error.enhancedError.message,
+          suggestions: error.enhancedError.suggestions,
+          type: error.enhancedError.type,
+          timestamp: Date.now()
+        };
+      }
+      
       return {
         success: false,
         error: error.message || 'Unknown error',
@@ -327,6 +356,116 @@ export class MCPOrchestrator {
       return {
         success: false,
         error: error.message || 'Unknown error',
+        timestamp: Date.now()
+      };
+    }
+  }
+
+  /**
+   * Connects to an iOS simulator by device name or UUID
+   * @param identifier Device name (e.g., "iPhone 16") or UUID
+   * @returns Connection result with session information
+   */
+  public async connectToSimulator(identifier: string): Promise<CommandResult> {
+    try {
+      // Get list of available simulators
+      const simulators = await this.idbManager.listAvailableSimulators();
+      
+      if (simulators.length === 0) {
+        return {
+          success: false,
+          error: 'No simulators available',
+          timestamp: Date.now()
+        };
+      }
+      
+      // Find matching simulator - prioritize exact matches over partial matches
+      let targetSimulator;
+      
+      // First, try exact UUID match
+      targetSimulator = simulators.find(sim => sim.udid === identifier);
+      
+      if (!targetSimulator) {
+        // Then try exact name match (case insensitive)
+        targetSimulator = simulators.find(sim => 
+          sim.name.toLowerCase() === identifier.toLowerCase()
+        );
+      }
+      
+      if (!targetSimulator) {
+        // Check for partial matches
+        const partialMatches = simulators.filter(sim => 
+          sim.name.toLowerCase().includes(identifier.toLowerCase())
+        );
+        
+        if (partialMatches.length > 1) {
+          // Multiple matches found - return options for user to choose
+          const matchOptions = partialMatches.map(s => `${s.name} (${s.udid})`).join(', ');
+          return {
+            success: false,
+            error: `Multiple simulators match "${identifier}". Please be more specific.`,
+            suggestions: partialMatches.map(s => s.name),
+            data: {
+              matches: partialMatches.map(s => ({ name: s.name, udid: s.udid }))
+            },
+            type: 'multiple_matches',
+            timestamp: Date.now()
+          };
+        } else if (partialMatches.length === 1) {
+          targetSimulator = partialMatches[0];
+        }
+      }
+      
+      if (!targetSimulator) {
+        const availableOptions = simulators.map(s => `${s.name} (${s.udid})`).join(', ');
+        return {
+          success: false,
+          error: `No simulator found matching "${identifier}". Available simulators: ${availableOptions}`,
+          suggestions: simulators.map(s => s.name),
+          type: 'command_not_found',
+          timestamp: Date.now()
+        };
+      }
+      
+      // Check if simulator is already booted
+      const bootedSimulators = await this.idbManager.listBootedSimulators();
+      const isBooted = bootedSimulators.some(sim => sim.udid === targetSimulator!.udid);
+      
+      // Boot simulator if not already booted
+      if (!isBooted) {
+        await this.idbManager.bootSimulatorByUDID(targetSimulator.udid);
+      }
+      
+      // Create session for the simulator
+      const sessionId = await this.idbManager.createSimulatorSession({
+        deviceName: targetSimulator.name,
+        autoboot: false // Already booted above
+      });
+      
+      // Set as active session
+      this.activeSessionId = sessionId;
+      this.emit('sessionCreated', { sessionId: this.activeSessionId });
+      
+      return {
+        success: true,
+        data: {
+          sessionId,
+          simulator: {
+            name: targetSimulator.name,
+            udid: targetSimulator.udid,
+            state: targetSimulator.state,
+            os: targetSimulator.os
+          },
+          wasBooted: !isBooted,
+          message: `Connected to ${targetSimulator.name} (${targetSimulator.udid})`
+        },
+        timestamp: Date.now()
+      };
+      
+    } catch (error: any) {
+      return {
+        success: false,
+        error: `Failed to connect to simulator: ${error.message || error}`,
         timestamp: Date.now()
       };
     }

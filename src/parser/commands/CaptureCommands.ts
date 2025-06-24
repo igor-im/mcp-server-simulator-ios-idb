@@ -12,7 +12,8 @@ export class CaptureCommands extends BaseCommandDefinition {
         /screenshot(\s+en\s+(?<outputPath>[^\s,]+))?/i,
         /tomar\s+(una\s+)?captura(\s+en\s+(?<outputPath>[^\s,]+))?/i,
         /capture\s+(the\s+)?screen(\s+to\s+(?<outputPath>[^\s,]+))?/i,
-        /take\s+(a\s+)?screenshot(\s+to\s+(?<outputPath>[^\s,]+))?/i
+        /take\s+(a\s+)?screenshot(\s+to\s+(?<outputPath>[^\s,]+))?/i,
+        /take\s+screenshot/i
       ],
       description: 'Captures a screenshot of the simulator',
       requiredParameters: [],

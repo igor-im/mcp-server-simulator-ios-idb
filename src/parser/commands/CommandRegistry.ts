@@ -3,12 +3,24 @@
 
 import { ParseResult } from '../interfaces/IParser.js';
 import { BaseCommandDefinition } from './BaseCommandDefinition.js';
+import { FuzzyMatcher } from '../../utils/FuzzyMatch.js';
+
+export interface EnhancedError {
+  message: string;
+  suggestions: string[];
+  type: 'command_not_found' | 'parameter_missing' | 'validation_failed';
+  originalInput: string;
+}
 
 export class CommandRegistry {
   private commandHandlers: BaseCommandDefinition[] = [];
 
   registerHandler(handler: BaseCommandDefinition) {
     this.commandHandlers.push(handler);
+  }
+
+  getCommandHandlers() {
+    return this.commandHandlers;
   }
 
   parseInstruction(text: string): ParseResult {
@@ -19,7 +31,11 @@ export class CommandRegistry {
       }
     }
     
-    throw new Error(`Could not understand the instruction: ${text}`);
+    // Generate helpful error with suggestions
+    const enhancedError = this.generateEnhancedError(text);
+    const error = new Error(enhancedError.message) as Error & { enhancedError: EnhancedError };
+    error.enhancedError = enhancedError;
+    throw error;
   }
 
   async getSupportedCommands(): Promise<Array<{
@@ -51,22 +67,58 @@ export class CommandRegistry {
       ];
     }
     
-    const suggestions = new Set<string>();
+    // Get all available commands and examples
+    const allCandidates: string[] = [];
     
     for (const handler of this.commandHandlers) {
       for (const definition of handler.getDefinitions()) {
-        if (definition.command.toLowerCase().includes(normalizedPartial)) {
-          suggestions.add(definition.command);
-        }
-        
-        for (const example of definition.examples) {
-          if (example.toLowerCase().includes(normalizedPartial)) {
-            suggestions.add(example);
-          }
-        }
+        allCandidates.push(definition.command);
+        allCandidates.push(...definition.examples);
       }
     }
     
-    return Array.from(suggestions).slice(0, 5);
+    // Use fuzzy matching for better suggestions
+    const matches = FuzzyMatcher.findMatches(partialText, allCandidates, 5, 0.3);
+    return matches.map(match => match.item);
+  }
+
+  /**
+   * Generate enhanced error with helpful suggestions
+   */
+  private generateEnhancedError(text: string): EnhancedError {
+    const allCommands: string[] = [];
+    const allExamples: string[] = [];
+    
+    for (const handler of this.commandHandlers) {
+      for (const definition of handler.getDefinitions()) {
+        allCommands.push(definition.command);
+        allExamples.push(...definition.examples);
+      }
+    }
+    
+    // Find similar commands using fuzzy matching
+    const commandSuggestions = FuzzyMatcher.findMatches(text, allCommands, 3, 0.3)
+      .map(match => match.item);
+    
+    const exampleSuggestions = FuzzyMatcher.findMatches(text, allExamples, 3, 0.2)
+      .map(match => match.item);
+    
+    // Combine suggestions, prioritizing commands
+    const suggestions = [...new Set([...commandSuggestions, ...exampleSuggestions])].slice(0, 5);
+    
+    let message = `Could not understand the instruction: "${text}"`;
+    
+    if (suggestions.length > 0) {
+      message += `\n\nDid you mean one of these?\n${suggestions.map(s => `• ${s}`).join('\n')}`;
+    } else {
+      message += `\n\nTry using "help" to see available commands or "help <category>" for specific command groups.`;
+    }
+    
+    return {
+      message,
+      suggestions,
+      type: 'command_not_found',
+      originalInput: text
+    };
   }
 }

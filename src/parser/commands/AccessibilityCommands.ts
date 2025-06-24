@@ -9,7 +9,7 @@ export class AccessibilityCommands extends BaseCommandDefinition {
       command: 'describe elements',
       patterns: [
         /describir\s+(todos\s+los\s+)?elementos/i,
-        /describe\s+all\s+elements/i,
+        /describe\s+(all\s+)?elements/i,
         /mostrar\s+elementos\s+de\s+accesibilidad/i
       ],
       description: 'Describes all accessibility elements on the screen',
