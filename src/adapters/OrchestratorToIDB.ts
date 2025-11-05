@@ -96,6 +96,28 @@ export class OrchestratorToIDB {
           result = { bundleId: command.parameters.bundleId };
           break;
 
+        case CommandType.UNINSTALL_APP:
+          if (this.idbManager.uninstallApp) {
+            await this.idbManager.uninstallApp(
+              command.parameters.sessionId || sessionId || '',
+              command.parameters.bundleId
+            );
+            result = { bundleId: command.parameters.bundleId };
+          } else {
+            throw new Error('Uninstall app operation not supported');
+          }
+          break;
+
+        case CommandType.LIST_APPS:
+          if (this.idbManager.listApps) {
+            result = await this.idbManager.listApps(
+              command.parameters.sessionId || sessionId || ''
+            );
+          } else {
+            throw new Error('List apps operation not supported');
+          }
+          break;
+
         // UI interaction commands
         case CommandType.TAP:
           await this.idbManager.tap(
@@ -157,6 +179,41 @@ export class OrchestratorToIDB {
             command.parameters.sessionId || sessionId || '',
             command.parameters.bundleId
           );
+          break;
+
+        // Accessibility commands
+        case CommandType.DESCRIBE_ELEMENTS:
+          if (this.idbManager.describeAllElements) {
+            result = await this.idbManager.describeAllElements(
+              command.parameters.sessionId || sessionId || ''
+            );
+          } else {
+            throw new Error('Describe elements operation not supported');
+          }
+          break;
+
+        case CommandType.DESCRIBE_POINT:
+          if (this.idbManager.describePointElement) {
+            result = await this.idbManager.describePointElement(
+              command.parameters.sessionId || sessionId || '',
+              command.parameters.x,
+              command.parameters.y
+            );
+          } else {
+            throw new Error('Describe point operation not supported');
+          }
+          break;
+
+        // Capture commands
+        case CommandType.CAPTURE_SCREEN:
+          if (this.idbManager.takeScreenshot) {
+            result = await this.idbManager.takeScreenshot(
+              command.parameters.sessionId || sessionId || '',
+              command.parameters.outputPath
+            );
+          } else {
+            throw new Error('Capture screen operation not supported');
+          }
           break;
 
         default:

@@ -65,10 +65,16 @@ export class NLParser implements IParser {
     );
     
     if (missingParameters.length > 0) {
+      // Get examples for this command to show how to use it
+      const exampleUsage = this.getCommandExamples(parseResult.command);
+      const exampleText = exampleUsage.length > 0 
+        ? `\n\nExamples:\n${exampleUsage.slice(0, 2).map(ex => `• "${ex}"`).join('\n')}`
+        : '';
+      
       return {
         isValid: false,
         missingParameters,
-        errorMessage: `Missing required parameters: ${missingParameters.join(', ')}`
+        errorMessage: `Missing required parameters for "${parseResult.command}": ${missingParameters.join(', ')}${exampleText}`
       };
     }
     
@@ -141,5 +147,19 @@ export class NLParser implements IParser {
     optionalParameters: string[];
   }>> {
     return this.commandRegistry.getSupportedCommands();
+  }
+
+  /**
+   * Get examples for a specific command
+   */
+  private getCommandExamples(commandName: string): string[] {
+    for (const handler of this.commandRegistry.getCommandHandlers()) {
+      const definitions = handler.getDefinitions();
+      const definition = definitions.find(def => def.command === commandName);
+      if (definition) {
+        return definition.examples;
+      }
+    }
+    return [];
   }
 }

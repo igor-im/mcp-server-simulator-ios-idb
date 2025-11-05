@@ -21,15 +21,47 @@ export enum CommandType {
   INSTALL_APP = 'installApp',
   LAUNCH_APP = 'launchApp',
   TERMINATE_APP = 'terminateApp',
+  UNINSTALL_APP = 'uninstallApp',
+  LIST_APPS = 'listApps',
   
   // UI interaction commands
   TAP = 'tap',
   SWIPE = 'swipe',
+  PRESS_DEVICE_BUTTON = 'pressDeviceButton',
+  INPUT_TEXT = 'inputText',
+  PRESS_KEY = 'pressKey',
+  PRESS_KEY_SEQUENCE = 'pressKeySequence',
+  
+  // Accessibility commands
+  DESCRIBE_ELEMENTS = 'describeElements',
+  DESCRIBE_POINT = 'describePoint',
   
   // Capture and logging commands
   TAKE_SCREENSHOT = 'takeScreenshot',
+  CAPTURE_SCREEN = 'captureScreen',
+  RECORD_VIDEO = 'recordVideo',
+  STOP_RECORDING = 'stopRecording',
   GET_SYSTEM_LOGS = 'getSystemLogs',
   GET_APP_LOGS = 'getAppLogs',
+  GET_LOGS = 'getLogs',
+  
+  // Debug commands
+  START_DEBUG = 'startDebug',
+  STOP_DEBUG = 'stopDebug',
+  DEBUG_STATUS = 'debugStatus',
+  LIST_CRASH_LOGS = 'listCrashLogs',
+  SHOW_CRASH_LOG = 'showCrashLog',
+  DELETE_CRASH_LOGS = 'deleteCrashLogs',
+  
+  // Misc commands
+  INSTALL_DYLIB = 'installDylib',
+  OPEN_URL = 'openUrl',
+  CLEAR_KEYCHAIN = 'clearKeychain',
+  SET_LOCATION = 'setLocation',
+  ADD_MEDIA = 'addMedia',
+  APPROVE_PERMISSIONS = 'approvePermissions',
+  UPDATE_CONTACTS = 'updateContacts',
+  FOCUS_SIMULATOR = 'focusSimulator',
   
   // Verification commands
   IS_SIMULATOR_BOOTED = 'isSimulatorBooted',
@@ -45,6 +77,9 @@ export interface CommandResult {
   data?: any;
   error?: string;
   timestamp: number;
+  // Enhanced error handling fields
+  suggestions?: string[];
+  type?: 'command_not_found' | 'parameter_missing' | 'validation_failed' | 'multiple_matches';
 }
 
 export interface CommandContext {

@@ -22,14 +22,18 @@ export abstract class BaseCommandDefinition {
 
   parseCommand(text: string): ParseResult | null {
     const normalizedText = text.trim().toLowerCase();
+    const originalText = text.trim();
     
     for (const definition of this.definitions) {
       for (const pattern of definition.patterns) {
         const match = normalizedText.match(pattern);
         if (match) {
+          // Also get match from original text for parameter extraction
+          const originalMatch = originalText.match(pattern);
           const parameters: Record<string, any> = {};
           for (const [paramName, extractor] of Object.entries(definition.parameterExtractors)) {
-            const value = extractor(match);
+            // Use original match to preserve case for parameters
+            const value = extractor(originalMatch || match);
             if (value !== undefined) {
               parameters[paramName] = value;
             }

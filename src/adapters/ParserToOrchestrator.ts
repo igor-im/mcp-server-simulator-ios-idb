@@ -24,7 +24,7 @@ export class ParserToOrchestrator {
     
     // Mapping natural language commands to CommandType
     this.commandMappings = {
-      // Simulator management commands
+      // Simulator management commands (Spanish)
       'crear sesión': CommandType.CREATE_SIMULATOR_SESSION,
       'crear simulador': CommandType.CREATE_SIMULATOR_SESSION,
       'iniciar simulador': CommandType.CREATE_SIMULATOR_SESSION,
@@ -36,7 +36,21 @@ export class ParserToOrchestrator {
       'arrancar simulador': CommandType.BOOT_SIMULATOR,
       'apagar simulador': CommandType.SHUTDOWN_SIMULATOR,
       
-      // Application management commands
+      // Simulator management commands (English)
+      'create session': CommandType.CREATE_SIMULATOR_SESSION,
+      'start simulator': CommandType.CREATE_SIMULATOR_SESSION,
+      'launch simulator': CommandType.CREATE_SIMULATOR_SESSION,
+      'end session': CommandType.TERMINATE_SIMULATOR_SESSION,
+      'terminate session': CommandType.TERMINATE_SIMULATOR_SESSION,
+      'close simulator': CommandType.TERMINATE_SIMULATOR_SESSION,
+      'list simulators': CommandType.LIST_AVAILABLE_SIMULATORS,
+      'show simulators': CommandType.LIST_AVAILABLE_SIMULATORS,
+      'list booted simulators': CommandType.LIST_BOOTED_SIMULATORS,
+      'show running simulators': CommandType.LIST_BOOTED_SIMULATORS,
+      'boot simulator': CommandType.BOOT_SIMULATOR,
+      'shutdown simulator': CommandType.SHUTDOWN_SIMULATOR,
+      
+      // Application management commands (Spanish)
       'instalar app': CommandType.INSTALL_APP,
       'instalar aplicación': CommandType.INSTALL_APP,
       'lanzar app': CommandType.LAUNCH_APP,
@@ -44,21 +58,97 @@ export class ParserToOrchestrator {
       'iniciar app': CommandType.LAUNCH_APP,
       'cerrar app': CommandType.TERMINATE_APP,
       'terminar app': CommandType.TERMINATE_APP,
+      'desinstalar app': CommandType.UNINSTALL_APP,
+      'eliminar app': CommandType.UNINSTALL_APP,
+      'borrar app': CommandType.UNINSTALL_APP,
+      'listar apps': CommandType.LIST_APPS,
+      'mostrar apps': CommandType.LIST_APPS,
       
-      // UI interaction commands
-      'tap': CommandType.TAP,
+      // Application management commands (English)
+      'install app': CommandType.INSTALL_APP,
+      'launch app': CommandType.LAUNCH_APP,
+      'terminate app': CommandType.TERMINATE_APP,
+      'uninstall app': CommandType.UNINSTALL_APP,
+      'remove app': CommandType.UNINSTALL_APP,
+      'delete app': CommandType.UNINSTALL_APP,
+      'list apps': CommandType.LIST_APPS,
+      'show apps': CommandType.LIST_APPS,
+      
+      // UI interaction commands (Spanish)
       'tocar': CommandType.TAP,
       'pulsar': CommandType.TAP,
-      'swipe': CommandType.SWIPE,
       'deslizar': CommandType.SWIPE,
       
-      // Screenshot and logs commands
-      'capturar pantalla': CommandType.TAKE_SCREENSHOT,
-      'screenshot': CommandType.TAKE_SCREENSHOT,
-      'captura': CommandType.TAKE_SCREENSHOT,
-      'logs': CommandType.GET_SYSTEM_LOGS,
+      // UI interaction commands (English)
+      'tap': CommandType.TAP,
+      'swipe': CommandType.SWIPE,
+      'press device button': CommandType.PRESS_DEVICE_BUTTON,
+      'input text': CommandType.INPUT_TEXT,
+      'press key': CommandType.PRESS_KEY,
+      'press key sequence': CommandType.PRESS_KEY_SEQUENCE,
+      
+      // Accessibility commands (Spanish)
+      'describir elementos': CommandType.DESCRIBE_ELEMENTS,
+      'describir todos los elementos': CommandType.DESCRIBE_ELEMENTS,
+      'describir punto': CommandType.DESCRIBE_POINT,
+      
+      // Accessibility commands (English)
+      'describe elements': CommandType.DESCRIBE_ELEMENTS,
+      'describe all elements': CommandType.DESCRIBE_ELEMENTS,
+      'describe point': CommandType.DESCRIBE_POINT,
+      
+      // Screenshot and logs commands (Spanish)
+      'capturar pantalla': CommandType.CAPTURE_SCREEN,
+      'captura': CommandType.CAPTURE_SCREEN,
       'logs del sistema': CommandType.GET_SYSTEM_LOGS,
       'logs de app': CommandType.GET_APP_LOGS,
+      'grabar video': CommandType.RECORD_VIDEO,
+      'detener grabación': CommandType.STOP_RECORDING,
+      
+      // Screenshot and logs commands (English)
+      'take screenshot': CommandType.CAPTURE_SCREEN,
+      'capture screen': CommandType.CAPTURE_SCREEN,
+      'screenshot': CommandType.CAPTURE_SCREEN,
+      'logs': CommandType.GET_LOGS,
+      'get logs': CommandType.GET_LOGS,
+      'record video': CommandType.RECORD_VIDEO,
+      'stop recording': CommandType.STOP_RECORDING,
+      
+      // Debug commands (Spanish)
+      'iniciar debug': CommandType.START_DEBUG,
+      'parar debug': CommandType.STOP_DEBUG,
+      'estado debug': CommandType.DEBUG_STATUS,
+      'listar crash logs': CommandType.LIST_CRASH_LOGS,
+      'mostrar crash log': CommandType.SHOW_CRASH_LOG,
+      'eliminar crash logs': CommandType.DELETE_CRASH_LOGS,
+      
+      // Debug commands (English)
+      'start debug': CommandType.START_DEBUG,
+      'stop debug': CommandType.STOP_DEBUG,
+      'debug status': CommandType.DEBUG_STATUS,
+      'list crash logs': CommandType.LIST_CRASH_LOGS,
+      'show crash log': CommandType.SHOW_CRASH_LOG,
+      'delete crash logs': CommandType.DELETE_CRASH_LOGS,
+      
+      // Misc commands (Spanish)
+      'instalar dylib': CommandType.INSTALL_DYLIB,
+      'abrir url': CommandType.OPEN_URL,
+      'limpiar keychain': CommandType.CLEAR_KEYCHAIN,
+      'establecer ubicación': CommandType.SET_LOCATION,
+      'añadir media': CommandType.ADD_MEDIA,
+      'aprobar permisos': CommandType.APPROVE_PERMISSIONS,
+      'actualizar contactos': CommandType.UPDATE_CONTACTS,
+      'enfocar simulador': CommandType.FOCUS_SIMULATOR,
+      
+      // Misc commands (English)
+      'install dylib': CommandType.INSTALL_DYLIB,
+      'open url': CommandType.OPEN_URL,
+      'clear keychain': CommandType.CLEAR_KEYCHAIN,
+      'set location': CommandType.SET_LOCATION,
+      'add media': CommandType.ADD_MEDIA,
+      'approve permissions': CommandType.APPROVE_PERMISSIONS,
+      'update contacts': CommandType.UPDATE_CONTACTS,
+      'focus simulator': CommandType.FOCUS_SIMULATOR,
       
       // Verification commands
       'verificar simulador': CommandType.IS_SIMULATOR_BOOTED,
